@@ -3,13 +3,13 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 
 interface CustomDomainPageProps {
-  params: {
+  params: Promise<{
     domain: string;
-  };
+  }>;
 }
 
 export default async function CustomDomainPage({ params }: CustomDomainPageProps) {
-  const { domain } = params;
+  const { domain } = await params;
   
   // Get website by custom domain from Supabase
   const supabase = await createClient();
@@ -68,7 +68,7 @@ export default async function CustomDomainPage({ params }: CustomDomainPageProps
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: CustomDomainPageProps) {
-  const { domain } = params;
+  const { domain } = await params;
   
   const supabase = await createClient();
   const { data: website } = await supabase
