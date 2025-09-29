@@ -1,6 +1,6 @@
 // app/[subdomain]/page.tsx
 import { notFound } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
+import { createServiceClient } from '@/utils/supabase/service';
 
 interface SubdomainPageProps {
   params: Promise<{
@@ -11,8 +11,12 @@ interface SubdomainPageProps {
 export default async function SubdomainPage({ params }: SubdomainPageProps) {
   const { subdomain } = await params;
   
+  console.log('[SUBDOMAIN] Loading website for subdomain:', subdomain);
+  
+  // Use service client to bypass RLS for public website viewing
+  const supabase = createServiceClient();
+  
   // Get website by subdomain from Supabase
-  const supabase = await createClient();
   const { data: website, error } = await supabase
     .from('websites')
     .select('*')
@@ -20,14 +24,23 @@ export default async function SubdomainPage({ params }: SubdomainPageProps) {
     .eq('status', 'DEPLOYED')
     .single();
   
-  if (error || !website) {
+  if (error) {
+    console.error('[SUBDOMAIN] Supabase error:', error.message, error.code);
+    console.error('[SUBDOMAIN] Query details - subdomain:', subdomain);
+  }
+  
+  if (!website) {
+    console.log('[SUBDOMAIN] Website not found for subdomain:', subdomain);
     notFound();
   }
+  
+  console.log('[SUBDOMAIN] Website found:', website.business_name, 'Status:', website.status);
   
   // Get the HTML content
   const htmlContent = website.html || website.draft_html;
   
   if (!htmlContent) {
+    console.log('[SUBDOMAIN] No HTML content found for website:', subdomain);
     return (
       <div style={{
         display: 'flex',
@@ -44,6 +57,8 @@ export default async function SubdomainPage({ params }: SubdomainPageProps) {
     );
   }
   
+  console.log('[SUBDOMAIN] Serving HTML content, length:', htmlContent.length);
+  
   // Return the HTML content directly
   return (
     <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
@@ -54,11 +69,12 @@ export default async function SubdomainPage({ params }: SubdomainPageProps) {
 export async function generateMetadata({ params }: SubdomainPageProps) {
   const { subdomain } = await params;
   
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data: website } = await supabase
     .from('websites')
     .select('business_name, business_description')
     .eq('subdomain', subdomain)
+    .eq('status', 'DEPLOYED')
     .single();
   
   if (!website) {
