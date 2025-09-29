@@ -35,9 +35,9 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
   
-  // Production handling for watari.sites
-  if (currentHost.endsWith('watari.sites')) {
-    const subdomain = currentHost.replace('.watari.sites', '');
+  // Production handling for watari.site
+  if (currentHost.endsWith('watari.site')) {
+    const subdomain = currentHost.replace('.watari.site', '');
     
     // Skip www and root domain
     if (subdomain && subdomain !== 'www' && subdomain !== 'watari') {
