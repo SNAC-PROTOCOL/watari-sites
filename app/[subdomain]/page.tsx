@@ -3,13 +3,13 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 
 interface SubdomainPageProps {
-  params: {
+  params: Promise<{
     subdomain: string;
-  };
+  }>;
 }
 
 export default async function SubdomainPage({ params }: SubdomainPageProps) {
-  const { subdomain } = params;
+  const { subdomain } = await params;
   
   // Get website by subdomain from Supabase
   const supabase = await createClient();
@@ -52,7 +52,7 @@ export default async function SubdomainPage({ params }: SubdomainPageProps) {
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: SubdomainPageProps) {
-  const { subdomain } = params;
+  const { subdomain } = await params;
   
   const supabase = await createClient();
   const { data: website } = await supabase
