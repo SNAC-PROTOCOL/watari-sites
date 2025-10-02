@@ -11,17 +11,22 @@ interface SubdomainPageProps {
 export default async function SubdomainPage({ params }: SubdomainPageProps) {
   const { subdomain } = await params;
   
+  // Early return for favicon requests
+  if (subdomain === 'favicon.ico') {
+    notFound();
+    return;
+  }
+  
   console.log('[SUBDOMAIN] Loading website for subdomain:', subdomain);
   
   // Use service client to bypass RLS for public website viewing
   const supabase = createServiceClient();
   
-  // Get website by subdomain from Supabase
+  // Get website by subdomain from Supabase (check if it exists at all)
   const { data: website, error } = await supabase
     .from('websites')
     .select('*')
     .eq('subdomain', subdomain)
-    .eq('status', 'DEPLOYED')
     .single();
   
   if (error) {
@@ -35,6 +40,43 @@ export default async function SubdomainPage({ params }: SubdomainPageProps) {
   }
   
   console.log('[SUBDOMAIN] Website found:', website.business_name, 'Status:', website.status);
+  
+  // Check if website exists but is not deployed yet
+  if (website.status === 'DRAFT') {
+    console.log('[SUBDOMAIN] Website is in DRAFT status');
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Website Coming Soon</h1>
+          <p style={{ color: '#666' }}>This website is being set up. Please check back later.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (website.status !== 'DEPLOYED') {
+    console.log('[SUBDOMAIN] Website exists but not yet deployed, status:', website.status);
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Website Not Yet Deployed</h1>
+          <p style={{ color: '#666' }}>This website exists but has not been deployed yet.</p>
+        </div>
+      </div>
+    );
+  }
   
   // Get the HTML content
   const htmlContent = website.html || website.draft_html;
@@ -74,7 +116,6 @@ export async function generateMetadata({ params }: SubdomainPageProps) {
     .from('websites')
     .select('business_name, business_description')
     .eq('subdomain', subdomain)
-    .eq('status', 'DEPLOYED')
     .single();
   
   if (!website) {
